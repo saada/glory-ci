@@ -13,7 +13,8 @@ How to build a CI system?
 ## Proof of Concept (POC)
 
 * Hard-coded trigger job page with textarea that takes a shell script and gets run by backend on demand
-  * Websocket/Webserver with a textarea (no f/e framework)
+  * frontend (done)
+  * Websocket/Webserver
   * Stream shell output via Websocket to browser
   * Re-run on demand
 

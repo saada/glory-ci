@@ -6,6 +6,7 @@ module.exports = {
   entry: [
     './index.js'
   ],
+
   output: {
     filename: 'bundle.js',
     // the output bundle
@@ -13,18 +14,22 @@ module.exports = {
     path: resolve(__dirname, 'static/dist')
   },
 
-  devtool: 'inline-source-map',
-
   module: {
     rules: [
       {
         test: /\.jsx?$/,
-        use: [ 'babel-loader', ],
+        use: ['babel-loader?cacheDirectory'],
         exclude: /node_modules/
       },
       {
         test: /\.css$/,
         use: ['style-loader', 'css-loader?modules']
+      },
+      {
+        test: /\.(woff|woff2|eot|ttf|otf|svg|png|jpg|gif)$/,
+        use: [
+          'file-loader'
+        ]
       }
     ]
   }
