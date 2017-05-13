@@ -11,10 +11,10 @@ import (
 const PORT = "8000"
 
 func main() {
-	fmt.Println("Starting server...")
+	fmt.Printf("Starting server on port %s...", PORT)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		fmt.Fprintf(w, "Hey there")
+		fmt.Fprintf(w, "HOME")
 	})
 
 	n := negroni.Classic() // Includes some default middlewares
