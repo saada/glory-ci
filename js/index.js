@@ -4,6 +4,11 @@ import styled from 'styled-components'
 import Script from './Script'
 import WebSocket from 'reconnecting-websocket'
 
+const Column = styled.div`
+  flex-direction: 'column';
+  flex: 1;
+`
+
 const RunButton = styled.button`
   background-color: tomato;
 `
@@ -11,6 +16,7 @@ const RunButton = styled.button`
 const AppContainer = styled.div`
   font-family: sans-serif;
   font-size: 14pt;
+  display: flex;
 `
 
 class App extends Component {
@@ -73,11 +79,15 @@ class App extends Component {
   render () {
     return <AppContainer>
       <h1>Glory CI</h1>
-      <Script onChange={code => this.setState({code})} {...this.state} />
-      <h2>Output</h2>
-      <pre>{this.state.output}</pre>
-      <button>+</button>
-      <RunButton onClick={e => this.run()}>Run Job</RunButton>
+      <Column>
+        <Script onChange={code => this.setState({code})} {...this.state} />
+        <button>+</button>
+        <RunButton onClick={e => this.run()}>Run Job</RunButton>
+      </Column>
+      <Column>
+        <h2>Output</h2>
+        <pre>{this.state.output}</pre>
+      </Column>
     </AppContainer>
   }
 }

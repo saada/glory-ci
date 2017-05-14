@@ -35,21 +35,21 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		_, msg, err := ws.ReadMessage()
+
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		if msg != nil {
-			payload := WebsocketPayload{}
-			json.Unmarshal(msg, &payload)
-			fmt.Println("running: " + payload.Code)
 
-			run(ws, []byte(payload.Code))
-		} else {
-			ws.Close()
-			fmt.Println(string(msg))
+		if msg == nil {
 			return
 		}
+
+		payload := WebsocketPayload{}
+		json.Unmarshal(msg, &payload)
+		fmt.Println("running: " + payload.Code)
+
+		run(ws, []byte(payload.Code))
 	}
 }
 
@@ -73,8 +73,7 @@ func run(ws *websocket.Conn, c []byte) {
 
 		// send payload
 		payload := WebsocketPayload{string(c), stdoutLine, stderrLine}
-		payloadString, _ := json.Marshal(payload)
-		ws.WriteMessage(websocket.TextMessage, payloadString)
+		ws.WriteJSON(payload)
 	}
 
 	cmd.Wait()
