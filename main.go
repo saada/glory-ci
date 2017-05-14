@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os/exec"
 
 	"github.com/gorilla/websocket"
 	"github.com/urfave/negroni"
@@ -16,36 +19,75 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func main() {
-	fmt.Printf("Starting server on port %s...", PORT)
-	mux := http.NewServeMux()
-	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		conn, err := upgrader.Upgrade(w, r, nil)
+type WebsocketPayload struct {
+	Code   string `json:"code"`
+	Stdout string `json:"stdout"`
+	Stderr string `json:"stderr"`
+}
+
+func serveWs(w http.ResponseWriter, r *http.Request) {
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer ws.Close()
+
+	for {
+		_, msg, err := ws.ReadMessage()
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		for {
-			msgType, msg, err := conn.ReadMessage()
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-			if string(msg) == "ping" {
-				fmt.Println("ping")
-				// time.Sleep(2 * time.Second)
-				err = conn.WriteMessage(msgType, []byte("pong"))
-				if err != nil {
-					fmt.Println(err)
-					return
-				}
-			} else {
-				conn.Close()
-				fmt.Println(string(msg))
-				return
-			}
+		if msg != nil {
+			payload := WebsocketPayload{}
+			json.Unmarshal(msg, &payload)
+			fmt.Println("running: " + payload.Code)
+
+			run(ws, []byte(payload.Code))
+		} else {
+			ws.Close()
+			fmt.Println(string(msg))
+			return
 		}
-	})
+	}
+}
+
+func run(ws *websocket.Conn, c []byte) {
+	cmd := exec.Command("docker", "run", "busybox", "sh", "-c", string(c))
+	stdout, _ := cmd.StdoutPipe()
+	stdoutReader := bufio.NewReader(stdout)
+	stderr, _ := cmd.StderrPipe()
+	stderrReader := bufio.NewReader(stderr)
+
+	err := cmd.Start()
+
+	for {
+		stdoutLine, stdoutErr := stdoutReader.ReadString('\n')
+		stderrLine, stderrErr := stderrReader.ReadString('\n')
+
+		// break the loop if there's neither stdout nor stderr output
+		if stdoutErr != nil && stderrErr != nil {
+			break
+		}
+
+		// send payload
+		payload := WebsocketPayload{string(c), stdoutLine, stderrLine}
+		payloadString, _ := json.Marshal(payload)
+		ws.WriteMessage(websocket.TextMessage, payloadString)
+	}
+
+	cmd.Wait()
+
+	if err != nil {
+		log.Print(err)
+	}
+}
+
+func main() {
+	fmt.Printf("Starting server on port %s...", PORT)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/ws", serveWs)
 
 	n := negroni.Classic() // Includes some default middlewares
 	n.Use(negroni.NewStatic(http.Dir("static")))

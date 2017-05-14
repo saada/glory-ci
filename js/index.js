@@ -18,11 +18,14 @@ class App extends Component {
     super(props)
     this.state = {
       code: '#!/bin/bash\necho hello, glory',
-      ws: new WebSocket('ws://localhost:8000/ws')
+      ws: new WebSocket('ws://localhost:8000/ws'),
+      output: ''
     }
   }
 
   componentDidMount () {
+    console.log('---GLORY CI---')
+
     const { ws } = this.state
     ws.addEventListener('open', () => {
       console.info('Websocket connected')
@@ -40,24 +43,39 @@ class App extends Component {
       console.info('Websocket disconnected')
       this.setState({err: 'Could not connect to server'})
     }
+
+    // keyboard events
+    window.document.addEventListener('keydown', e => {
+      // ctrl+enter || cmd+enter
+      if (e.keyCode === 13) {
+        if (e.ctrlKey || e.metaKey) {
+          this.run()
+        }
+      }
+    })
   }
 
   handleMessage (msg) {
-    console.log('msg', msg)
+    const inputPayload = JSON.parse(msg)
+    console.log('msg -', inputPayload)
+    this.setState({
+      output: this.state.output + inputPayload.stdout + inputPayload.stderr
+    })
   }
 
   run () {
+    this.setState({output: ''})
     console.log('running job')
     const { ws, code } = this.state
     ws.send(JSON.stringify({code}))
   }
 
   render () {
-    console.log('---GLORY CI---')
-
     return <AppContainer>
       <h1>Glory CI</h1>
       <Script onChange={code => this.setState({code})} {...this.state} />
+      <h2>Output</h2>
+      <pre>{this.state.output}</pre>
       <button>+</button>
       <RunButton onClick={e => this.run()}>Run Job</RunButton>
     </AppContainer>
