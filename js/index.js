@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom'
 import styled from 'styled-components'
 import Script from './Script'
 import WebSocket from 'reconnecting-websocket'
+import Convert from 'ansi-to-html'
+const convert = new Convert()
 
 const Column = styled.div`
   flex-direction: 'column';
@@ -11,12 +13,31 @@ const Column = styled.div`
 
 const RunButton = styled.button`
   background-color: tomato;
+  font-size: 12pt;
 `
 
 const AppContainer = styled.div`
-  font-family: sans-serif;
-  font-size: 14pt;
+  font-family: Menlo;
+  font-size: 12pt;
   display: flex;
+  margin: 0 10px;
+`
+
+const OutputContainer = styled.div`
+  background-color: black;
+  color: white;
+  min-height: 80vh;
+  max-height: 80vh;
+  max-width: 50vw;
+  flex-basis: auto; /* default value */
+  flex-grow: 1;
+  white-space: pre-wrap;
+  padding: 5px;
+  overflow-y: scroll;
+`
+
+const ErrorOutput = styled.span`
+  color: red
 `
 
 class App extends Component {
@@ -25,7 +46,7 @@ class App extends Component {
     this.state = {
       code: '#!/bin/bash\necho hello, glory',
       ws: new WebSocket('ws://localhost:8000/ws'),
-      output: ''
+      outputs: []
     }
   }
 
@@ -65,12 +86,22 @@ class App extends Component {
     const inputPayload = JSON.parse(msg)
     console.log('msg -', inputPayload)
     this.setState({
-      output: this.state.output + inputPayload.stdout + inputPayload.stderr
+      outputs: [
+        ...this.state.outputs,
+        <span
+          key={Math.random()}
+          dangerouslySetInnerHTML={{__html: convert.toHtml(inputPayload.stdout)}} 
+        />,
+        inputPayload.stderr ? <ErrorOutput
+          key={Math.random()}
+          dangerouslySetInnerHTML={{__html: convert.toHtml(inputPayload.stderr)}}
+        /> : null
+      ]
     })
   }
 
   run () {
-    this.setState({output: ''})
+    this.setState({outputs: []})
     console.log('running job')
     const { ws, code } = this.state
     ws.send(JSON.stringify({code}))
@@ -78,15 +109,17 @@ class App extends Component {
 
   render () {
     return <AppContainer>
-      <h1>Glory CI</h1>
       <Column>
+        <h1>Glory CI</h1>
         <Script onChange={code => this.setState({code})} {...this.state} />
         <button>+</button>
         <RunButton onClick={e => this.run()}>Run Job</RunButton>
       </Column>
       <Column>
         <h2>Output</h2>
-        <pre>{this.state.output}</pre>
+        <OutputContainer>
+          {this.state.outputs}
+        </OutputContainer>
       </Column>
     </AppContainer>
   }

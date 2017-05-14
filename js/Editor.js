@@ -14,7 +14,7 @@ export default class Editor extends Component {
       defaultValue='#!/bin/bash'
       value={this.props.code}
       style={{
-        fontSize: '14pt'
+        fontSize: '12pt'
       }}
       editorProps={{
         $blockScrolling: true

@@ -54,7 +54,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 }
 
 func run(ws *websocket.Conn, c []byte) {
-	cmd := exec.Command("docker", "run", "busybox", "sh", "-c", string(c))
+	cmd := exec.Command("docker", "run", "--rm", "busybox", "sh", "-c", string(c))
 	stdout, _ := cmd.StdoutPipe()
 	stdoutReader := bufio.NewReader(stdout)
 	stderr, _ := cmd.StderrPipe()
